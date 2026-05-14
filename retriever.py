@@ -1,9 +1,12 @@
 # retriever.py
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
 
 def load_retriever(persist_dir="./chroma_db", k=4):
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="gemini-embedding-001",
+     
+    )
     vectorstore = Chroma(
         persist_directory=persist_dir,
         embedding_function=embeddings
