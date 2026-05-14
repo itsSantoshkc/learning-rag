@@ -1,5 +1,22 @@
-__pycacha__/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
+# Virtual environments (optional but common)
+venv/
+.env/
+.env.*
 
-chroma_db/
+# Environment file (explicit)
 .env
+
+# Chroma DB / vector database
+chroma_db/
+*.chroma/
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
