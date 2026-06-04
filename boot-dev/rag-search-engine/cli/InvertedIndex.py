@@ -1,5 +1,6 @@
 from collections import Counter, defaultdict
 import json
+import math
 import os
 import pickle
 import string
@@ -30,6 +31,11 @@ class InvertedIndex:
         tokens = [token for token in tokens if token not in self.stop_words]
         tokens = [self.stemmer.stem(token) for token in tokens]  # Fix 1: use self.stemmer
         return tokens
+
+    def get_idf(self, term: str) -> float:
+        doc_count = len(self.docmap)
+        term_doc_count = len(self.index[term])
+        return math.log((doc_count + 1) / (term_doc_count + 1))
 
     def __add_document(self, doc_id, text):
         tokens = self.__tokenize(text)

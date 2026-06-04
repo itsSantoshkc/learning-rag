@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
+from ast import arg
 import json
+import math
 import pickle
 import string
 from InvertedIndex import InvertedIndex  # Fix 1: absolute import
@@ -65,6 +67,13 @@ def main() -> None:
     tf_parser.add_argument("doc_id",type=int,help="Document Id")
     tf_parser.add_argument("term",type=str,help="Single Term to get its frequency ")
 
+    idf_parser =  subparsers.add_parser("idf",help="Get Inverse Document frequency")
+    idf_parser.add_argument("term",type=str,help="Single Term to get its frequency ")
+
+    tf_idf_parser =  subparsers.add_parser("tfidf",help="Get Inverse Document frequency")
+    tf_idf_parser.add_argument("doc_id",type=int,help="Document Id")
+    tf_idf_parser.add_argument("term",type=str,help="Single Term to get its frequency ")
+
     args = parser.parse_args()
 
     match args.command:
@@ -106,6 +115,34 @@ def main() -> None:
             with open("cache/term_frequencies.pkl", "rb") as f:
                 index.term_frequencies = pickle.load(f)
             print(index.get_tf(doc_id,token))
+        case "idf":
+            index = InvertedIndex()
+            with open("cache/index.pkl", "rb") as f:
+                index.index = pickle.load(f)
+            with open("cache/docmap.pkl", "rb") as f:
+                index.docmap = pickle.load(f)
+            token = tokenize_single_term(args.term)
+
+            idf = index.get_idf(token)
+
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+        case "tfidf":
+            token = tokenize_single_term(args.term)
+
+            index = InvertedIndex()
+            with open("cache/index.pkl", "rb") as f:
+                index.index = pickle.load(f)
+            with open("cache/docmap.pkl", "rb") as f:
+                index.docmap = pickle.load(f)
+            with open("cache/term_frequencies.pkl", "rb") as f:
+                index.term_frequencies = pickle.load(f)
+
+            tf = index.get_tf(args.doc_id,token)
+            idf = index.get_idf(token)
+
+            tf_idf = tf * idf
+
+            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
 
 
         case _:
