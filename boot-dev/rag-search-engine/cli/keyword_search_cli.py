@@ -2,7 +2,9 @@
 
 import argparse
 import json
+import pickle
 import string
+from InvertedIndex import InvertedIndex  # Fix 1: absolute import
 from nltk.stem import PorterStemmer
 
 def removePunc(st):
@@ -22,14 +24,16 @@ STOP_WORDS = getStopWords()
 def tokenize(st):
     stop_words = getStopWords()
 
-    tokens = [token for token in st.split() if token]
+    tokens = [token.lower() for token in st.split() if token]
 
     filtered_tokens = [
         token for token in tokens
-        if token.lower() not in stop_words
+        if token not in stop_words
     ]
 
     return filtered_tokens
+
+    
 
 
 def clean(st):
@@ -39,40 +43,71 @@ def clean(st):
     clean_tokens = [stemmer.stem(token) for token in tokens]
     return clean_tokens
 
+def tokenize_single_term(st):
+    tokens = tokenize(st)
+
+    if len(tokens) != 1:
+        raise  ValueError("term must be a single token")
+    return tokens[0]
+
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
+
+    subparsers.add_parser("build", help="Build the index from movies JSON")  # Fix 4: register build
 
     search_parser = subparsers.add_parser("search", help="Search movies using keywords")
     search_parser.add_argument("query", type=str, help="Search query")
+
+    tf_parser = subparsers.add_parser("tf",help="Get term frequency")
+    tf_parser.add_argument("doc_id",type=int,help="Document Id")
+    tf_parser.add_argument("term",type=str,help="Single Term to get its frequency ")
 
     args = parser.parse_args()
 
     match args.command:
         case "search":
-            with open("data/course-rag-movies.json", "r") as f:
-                d = json.load(f)
-            res = []
-            for movie in d["movies"]:
-                if(len(res) >= 5):
+            index = InvertedIndex()
+            with open("cache/index.pkl", "rb") as f:
+                index.index = pickle.load(f)
+            with open("cache/docmap.pkl", "rb") as f:
+                index.docmap = pickle.load(f)
+
+            query = clean(args.query)
+            results = {}
+            for token in query:
+                for doc_id in index.get_documents(token):
+                    results[doc_id] = index.docmap[doc_id]
+                    if len(results) >= 5:
+                        break
+                if len(results) >= 5:
                     break
-                clean_tokens = clean(movie["title"])
-                clean_query_tokens = clean(args.query)
+
+            if not results:
+                print("No results found.")
+            else:
+                for doc_id, movie in results.items():
+                    print(f"[{movie['id']}] {movie['title']}")
+
+        case "build":                           # Fix 3: actual build logic
+            index = InvertedIndex()
+            with open("data/course-rag-movies.json", "r") as f:
+                data = json.load(f)
+            index.build(data['movies'])
+            index.save()
+            print("Index built and saved.")
+        case "tf":
+            token = tokenize_single_term(args.term)
+            doc_id = args.doc_id
+
+            index = InvertedIndex()
+            with open("cache/term_frequencies.pkl", "rb") as f:
+                index.term_frequencies = pickle.load(f)
+            print(index.get_tf(doc_id,token))
 
 
-                for token in clean_tokens:
-                    for qtoken in clean_query_tokens:
-                        if qtoken in token.lower() :
-                            if(movie["title"] not in res):
-                                res.append(movie["title"])
-                            
-
-                
-            print(res)
-            pass
         case _:
             parser.print_help()
 
