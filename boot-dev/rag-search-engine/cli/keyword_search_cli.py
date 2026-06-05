@@ -74,6 +74,9 @@ def main() -> None:
     tf_idf_parser.add_argument("doc_id",type=int,help="Document Id")
     tf_idf_parser.add_argument("term",type=str,help="Single Term to get its frequency ")
 
+    bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
+
     args = parser.parse_args()
 
     match args.command:
@@ -144,7 +147,18 @@ def main() -> None:
 
             print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
 
+        case "bm25idf":
+            token = tokenize_single_term(args.term)
 
+            index = InvertedIndex()
+            with open("cache/index.pkl", "rb") as f:
+                index.index = pickle.load(f)
+            with open("cache/docmap.pkl", "rb") as f:
+                index.docmap = pickle.load(f)
+            with open("cache/term_frequencies.pkl", "rb") as f:
+                index.term_frequencies = pickle.load(f)
+            bm25idf = index.get_bm25_idf(token)
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
         case _:
             parser.print_help()
 
